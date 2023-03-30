@@ -1,0 +1,84 @@
+name: Publish
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    strategy:
+      matrix:
+        packages:
+          - { name: '@quantco/pnpm-licenses', registry: 'https://registry.npmjs.org', scope: '@quantco', token_secret_name: 'NPM_TOKEN' }
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # this is needed by version-metadata
+      pull-requests: read # this is needed by version-metadata
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2.2.4
+        with:
+          version: 6.32.2
+      # Setup .npmrc file to publish to GitHub Packages
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "pnpm"
+          registry-url: ${{ matrix.packages.registry }}
+          scope: ${{ matrix.packages.scope }}
+      - id: version-metadata
+        uses: Quantco/ui-actions/version-metadata@v1.0.7
+        with:
+          file: 'package.json'
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Determine last published version
+        id: last-published-version
+        run: |
+          set +e # disable pipefail, we handle errors and don't want to exit when one occurs
+          version=$(npm show $PACKAGE version)
+          if [ $? -eq 0 ]
+          then
+            echo "Last published version is $version"
+            echo "CI_HASNT_PUBLISHED_YET=false" >> $GITHUB_ENV
+            echo "CI_PUBLISHED_VERSION=$version" >> $GITHUB_ENV
+          else
+            echo "Determining last published version failed, falling back to 0.0.0"
+            echo "This should only happen if the package has never been published before."
+            echo "If it happens for any other reason you should investigate why it failed."
+            echo "CI_HASNT_PUBLISHED_YET=true" >> $GITHUB_ENV
+            echo "CI_PUBLISHED_VERSION=0.0.0" >> $GITHUB_ENV
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets[matrix.packages.token_secret_name] }}
+          PACKAGE: ${{ matrix.packages.name }}
+      - name: Determine if a new version should be published
+        uses: Quantco/ui-actions/publish@v1.0.7
+        id: publish
+        with:
+          increment-type: pre-release
+          relevant-files: '[".github/**", "package.json", "readme.md", "LICENSE", ".eslintrc.js", "tsconfig.json", "tsup.config.ts", "remove-markdown.d.ts", "src"]'
+          package-json-file-path: 'package.json'
+          latest-registry-version: ${{ env.CI_PUBLISHED_VERSION }}
+          version-metadata-json: ${{ steps.version-metadata.outputs.json }}
+      - run: pnpm install
+      # github casts all outputs to strings, so evaluate against the string 'true' here :)
+        if: steps.publish.outputs.publish == 'true'
+      - run: 'pnpm build'
+        if: steps.publish.outputs.publish == 'true'
+      - name: publish npm package
+        if: steps.publish.outputs.publish == 'true'
+        run: |
+          echo "Publishing version ${{ steps.publish.outputs.version }}"
+          npm version --git-tag-version false --allow-same-version true ${{ steps.publish.outputs.version }}
+          # "--access public" is required for scoped packages when publishing for the first time
+          # as by default scoped packages are set to private
+          # TODO: skipping publish for now, just checking if it gets this far
+          # npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets[matrix.packages.token_secret_name] }}
+      - name: Create action summary
+        run: |
+          echo "$SUMMARY" >> $GITHUB_STEP_SUMMARY
+        env: # this is required because bash/sh and backticks don't play nice together
+          SUMMARY: ${{ steps.publish.outputs.reason }}
