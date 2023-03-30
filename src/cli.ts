@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import minimist from 'minimist'
 import { listCommand, generateDisclaimerCommand } from './index'
 import c from 'ansi-colors'

@@ -1,9 +1,16 @@
 {
-  "name": "pnpm-license",
+  "name": "@quantco/pnpm-licenses",
   "version": "1.0.0",
-  "description": "Extract license information from pnpm projects",
-  "main": "src/index.ts",
-  "keywords": [],
+  "description": "Generate third party license disclaimers in pnpm-based projects",
+  "homepage": "https://github.com/Quantco/pnpm-licenses",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Quantco/pnpm-licenses"
+  },
+  "bin": {
+    "pnpm-licenses": "dist/index.mjs"
+  },
+  "keywords": ["spdx", "license", "pnpm", "cli"],
   "author": "Jannik Wibker",
   "license": "MIT",
   "scripts": {
