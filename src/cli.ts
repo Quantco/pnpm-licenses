@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import minimist from 'minimist'
-import { listCommand, generateDisclaimerCommand } from './index'
 import c from 'ansi-colors'
+import { listCommand, generateDisclaimerCommand } from './index'
 
 const version = '1.0.0'
+/* eslint-disable prettier/prettier */
 const usage = `
 ${c.bold('usage')}: ${c.yellow('pnpm-licenses')} ${c.white('[command]')} ${c.white('[options]')}
 
@@ -34,7 +35,7 @@ ${c.bold(c.white('commands'))}:
   ${c.bold(c.white('help'))}                           ${c.white('Print this help message')} (also available as ${c.white('--help')})
 `.trim()
 
-const usage_list_command = `
+const usageListCommand = `
 ${c.bold('usage')}: ${c.yellow('pnpm-licenses list')} ${c.white('[options]')}
 
                                List all dependencies and their licenses
@@ -52,7 +53,7 @@ ${c.bold(c.white('options'))}:
   ${c.white('--help')}                       Get help for the list command
 `.trim()
 
-const usage_generate_disclaimer_command = `
+const usageGenerateDisclaimerCommand = `
 ${c.bold('usage')}: ${c.yellow('pnpm-licenses generate-disclaimer')} ${c.white('[options]')}
   
                                Generate a disclaimer for all dependencies
@@ -66,6 +67,7 @@ ${c.bold(c.white('options'))}:
 
   ${c.white('--help')}                       Get help for the generate-disclaimer command
 `.trim()
+/* eslint-enable prettier/prettier */
 
 const argv = minimist(process.argv.slice(2), {
   boolean: ['json-input', 'prod', 'resolve-licenses', 'cyclonedx', 'version', 'help'],
@@ -75,13 +77,25 @@ const argv = minimist(process.argv.slice(2), {
   }
 })
 
-const knownFlags = ['json-input', 'json-input-file', 'i', 'output-file', 'o', 'prod', 'resolve-licenses', 'cyclonedx', 'version', 'help']
+const knownFlags = [
+  'json-input',
+  'json-input-file',
+  'i',
+  'output-file',
+  'o',
+  'prod',
+  'resolve-licenses',
+  'cyclonedx',
+  'version',
+  'help'
+]
+
 const usedFlags = Object.entries(argv)
   .filter(([, value]: [string, boolean | string]) => value === true)
   .map(([key]) => key)
 
-if (argv.version || usedFlags.length === 0 && argv._.length === 1 && argv._[0] === 'version') {
-  const unknownFlags = usedFlags.filter(flag => !knownFlags.includes(flag))
+if (argv.version || (usedFlags.length === 0 && argv._.length === 1 && argv._[0] === 'version')) {
+  const unknownFlags = usedFlags.filter((flag) => !knownFlags.includes(flag))
 
   if (unknownFlags.length > 0) {
     console.log('Unknown flags supplied to version commmand:', unknownFlags.join(', '))
@@ -98,8 +112,12 @@ if (argv.version || usedFlags.length === 0 && argv._.length === 1 && argv._[0] =
   process.exit(0)
 }
 
-if (argv.help && argv._.length === 0 || usedFlags.length === 0 && argv._.length === 1 && argv._[0] === 'help' || usedFlags.length === 0 && argv._.length === 0) {
-  const unknownFlags = usedFlags.filter(flag => !knownFlags.includes(flag))
+if (
+  (argv.help && argv._.length === 0) ||
+  (usedFlags.length === 0 && argv._.length === 1 && argv._[0] === 'help') ||
+  (usedFlags.length === 0 && argv._.length === 0)
+) {
+  const unknownFlags = usedFlags.filter((flag) => !knownFlags.includes(flag))
 
   if (unknownFlags.length > 0) {
     console.log('Unknown flags supplied to help commmand: ', unknownFlags.join(', '))
@@ -111,15 +129,15 @@ if (argv.help && argv._.length === 0 || usedFlags.length === 0 && argv._.length 
     console.log('Invalid flags supplied to help commmand: ', usedFlags.join(', '))
     process.exit(1)
   }
-  
+
   console.log(usage)
   process.exit(0)
 }
 
 if (argv._.length === 1 && argv._[0] === 'list') {
   const forbiddenFlags = ['version', 'help']
-  const unknownFlags = usedFlags.filter(flag => !knownFlags.includes(flag))
-  const invalidFlags = usedFlags.filter(flag => forbiddenFlags.includes(flag))
+  const unknownFlags = usedFlags.filter((flag) => !knownFlags.includes(flag))
+  const invalidFlags = usedFlags.filter((flag) => forbiddenFlags.includes(flag))
 
   if (unknownFlags.length > 0) {
     console.log('Unknown flags supplied to list commmand:', unknownFlags.join(', '))
@@ -128,7 +146,7 @@ if (argv._.length === 1 && argv._[0] === 'list') {
 
   if (argv.help) {
     // TODO: could highlight the options that are currently being supplied
-    console.log(usage_list_command)
+    console.log(usageListCommand)
     process.exit(0)
   }
 
@@ -142,7 +160,7 @@ if (argv._.length === 1 && argv._[0] === 'list') {
     stdin: argv['json-input'],
     inputFile: argv['json-input-file'],
     stdout: argv['output-file'] === undefined,
-    outputFile: argv['output-file'],
+    outputFile: argv['output-file']
   }
 
   if (typeof argv.prod !== 'boolean') {
@@ -155,22 +173,25 @@ if (argv._.length === 1 && argv._[0] === 'list') {
     process.exit(1)
   }
 
-  if (typeof argv['cyclonedx'] !== 'boolean') {
-    console.log('Invalid value for cyclonedx flag:', argv['cyclonedx'])
+  if (typeof argv.cyclonedx !== 'boolean') {
+    console.log('Invalid value for cyclonedx flag:', argv.cyclonedx)
     process.exit(1)
   }
 
-  listCommand({
-    prod: argv.prod,
-    resolveLicenses: argv['resolve-licenses'],
-    cycloneDX: argv.cyclonedx,
-  }, ioOptions)
+  listCommand(
+    {
+      prod: argv.prod,
+      resolveLicenses: argv['resolve-licenses'],
+      cycloneDX: argv.cyclonedx
+    },
+    ioOptions
+  )
 }
 
 if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
   const forbiddenFlags = ['resolve-licenses', 'cyclonedx', 'version', 'help']
-  const unknownFlags = usedFlags.filter(flag => !knownFlags.includes(flag))
-  const invalidFlags = usedFlags.filter(flag => forbiddenFlags.includes(flag))
+  const unknownFlags = usedFlags.filter((flag) => !knownFlags.includes(flag))
+  const invalidFlags = usedFlags.filter((flag) => forbiddenFlags.includes(flag))
 
   if (unknownFlags.length > 0) {
     console.log('Unknown flags supplied to version commmand:', unknownFlags.join(', '))
@@ -179,10 +200,9 @@ if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
 
   if (argv.help) {
     // TODO: could highlight the options that are currently being supplied
-    console.log(usage_generate_disclaimer_command)
+    console.log(usageGenerateDisclaimerCommand)
     process.exit(0)
   }
-
 
   if (invalidFlags.length > 0) {
     console.log('Invalid flags supplied to generate-disclaimer command:', invalidFlags.join(', '))
@@ -194,7 +214,7 @@ if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
     stdin: argv['json-input'],
     inputFile: argv['json-input-file'],
     stdout: argv['output-file'] === undefined,
-    outputFile: argv['output-file'],
+    outputFile: argv['output-file']
   }
 
   if (typeof argv.prod !== 'boolean') {
@@ -202,7 +222,10 @@ if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
     process.exit(1)
   }
 
-  generateDisclaimerCommand({
-    prod: argv.prod,
-  }, ioOptions)
+  generateDisclaimerCommand(
+    {
+      prod: argv.prod
+    },
+    ioOptions
+  )
 }

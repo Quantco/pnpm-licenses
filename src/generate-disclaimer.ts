@@ -5,7 +5,13 @@ export const generateDisclaimer = (deps: PnpmDependencyResolvedLicenseText[]) =>
 
   const licenseTexts = deps
     .map((dep) => {
-      const disclaimer = `The following software may be included in this product: ${dep.name} (${dep.version})\n${dep.additionalText ? dep.additionalText + '\n' : ''}This software contains the following license and notice below:`
+      const disclaimer = [
+        `The following software may be included in this product: ${dep.name} (${dep.version})`,
+        dep.additionalText,
+        'This software contains the following license and notice below:'
+      ]
+        .filter(Boolean)
+        .join('\n')
       const license = dep.licenseText
       return `${disclaimer}\n\n${license}`
     })

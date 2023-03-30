@@ -10,7 +10,12 @@
   "bin": {
     "pnpm-licenses": "dist/index.mjs"
   },
-  "keywords": ["spdx", "license", "pnpm", "cli"],
+  "keywords": [
+    "spdx",
+    "license",
+    "pnpm",
+    "cli"
+  ],
   "author": "Jannik Wibker",
   "license": "MIT",
   "scripts": {
@@ -38,6 +43,7 @@
     "eslint-config-standard": "^17.0.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-n": "^15.6.1",
+    "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-promise": "^6.1.1",
     "prettier": "^2.8.7",
     "tsup": "^6.7.0",

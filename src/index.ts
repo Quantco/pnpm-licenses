@@ -14,8 +14,11 @@ export type GenerateDisclaimerOptions = {
   prod: boolean
 }
 
-export type IOOptions = 
-  ({ stdin: false; inputFile: undefined } | { stdin: true; inputFile: undefined } | { stdin: false; inputFile: string }) &
+export type IOOptions = (
+  | { stdin: false; inputFile: undefined }
+  | { stdin: true; inputFile: undefined }
+  | { stdin: false; inputFile: string }
+) &
   ({ stdout: true; outputFile: undefined } | { stdout: false; outputFile: string })
 
 const output = (value: string, options: IOOptions) => {
@@ -31,11 +34,8 @@ export const listCommand = async (options: ListOptions, ioOptions: IOOptions) =>
     .then(Object.values)
     .then((deps: PnpmDependency[]) => deps.flat())
 
-
   if (!options.resolveLicenses && !options.cycloneDX) {
-    deps
-      .then((deps) => output(JSON.stringify(deps, null, 2), ioOptions))
-      .then(() => process.exit(0))
+    deps.then((deps) => output(JSON.stringify(deps, null, 2), ioOptions)).then(() => process.exit(0))
   }
 
   if (options.cycloneDX) {

@@ -25,8 +25,11 @@ async function read(stream: NodeJS.ReadableStream) {
   return Buffer.concat(chunks).toString('utf8')
 }
 
-export type IOOptions =
-  ({ stdin: false; inputFile: undefined } | { stdin: true; inputFile: undefined } | { stdin: false; inputFile: string }) &
+export type IOOptions = (
+  | { stdin: false; inputFile: undefined }
+  | { stdin: true; inputFile: undefined }
+  | { stdin: false; inputFile: string }
+) &
   ({ stdout: true; outputFile: undefined } | { stdout: false; outputFile: string })
 
 export const getDependencies = (options: { prod: boolean }, ioOptions: IOOptions): Promise<PnpmJson> => {

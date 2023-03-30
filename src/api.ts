@@ -5,14 +5,6 @@ import { resolveLicensesBestEffort } from './resolve-licenses-best-effort'
 import type { PnpmDependency } from './get-dependencies'
 import type { PnpmDependencyResolvedLicenseText } from './get-license-text'
 
-export type {
-  PnpmDependency,
-  PnpmDependencyResolvedLicenseText
-}
+export type { PnpmDependency, PnpmDependencyResolvedLicenseText }
 
-export {
-  generateDisclaimer,
-  getDependencies,
-  getLicenseText,
-  resolveLicensesBestEffort
-}
+export { generateDisclaimer, getDependencies, getLicenseText, resolveLicensesBestEffort }
