@@ -7,6 +7,9 @@
     "type": "git",
     "url": "https://github.com/Quantco/pnpm-licenses"
   },
+  "bugs": {
+    "url": "https://github.com/Quantco/pnpm-licenses/issues"
+  },
   "bin": {
     "pnpm-licenses": "dist/index.mjs"
   },

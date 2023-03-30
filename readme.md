@@ -57,6 +57,24 @@ pnpm licenses list --prod --json | npx @quantco/pnpm-licenses list --json-input 
 npx @quantco/pnpm-licenses list --json-input-file=dependencies.json --resolve-licenses
 ```
 
+### Output
+
+You'll receive a giant array of objects, each representing a dependency:
+
+```ts
+type Dependency = {
+    name: string // from package.json
+    version: string // from package.json
+    path: string // file path to directory of dependency on disk
+    license: string // from package.json
+    author?: string | undefined // from package.json
+    homepage?: string | undefined // from package.json
+    description?: string | undefined // from package.json
+    additionalText?: string | undefined // set for dependencies with "public domain like" licences as a replacement for "Copyright (c) <author>"
+    licenseText: string | undefined // license text, this is only set if you use the --resolve-licenses flag
+}
+```
+
 ### Options
 
 ```
@@ -125,7 +143,12 @@ import {
   getLicenseText,
   resolveLicensesBestEffort
 } from '@quantco/pnpm-licenses/dist/api'
-import type { PnpmDependency, PnpmDependencyResolvedLicenseText } from '@quantco/pnpm-licenses/dist/types'
+import type { PnpmDependency, PnpmDependencyResolvedLicenseText } from '@quantco/pnpm-licenses/dist/api'
 ```
 
 Have a look at the type definitions for more details.
+
+# Bugs and feature requests
+
+This package is in the very early stages of development.
+If you find any bugs or have any feature requests, please open an issue on [GitHub](https://github.com/Quantco/pnpm-licenses/issues).
