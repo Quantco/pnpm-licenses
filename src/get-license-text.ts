@@ -1,6 +1,8 @@
 import fs from 'fs/promises'
 import path from 'path'
 import licenseTexts from 'spdx-license-list/full.js'
+import stripIndent from 'strip-indent'
+import removeMarkdown from 'remove-markdown'
 import type { PnpmDependency } from './get-dependencies'
 
 const LICENSE_BASENAMES = [
@@ -40,14 +42,27 @@ export class MissingLicenseError extends Error {
 
 const resolvedByTypes = ['license-file', 'readme-search', 'fallback-author', 'fallback-homepage'] as const
 
-export const getLicenseText = async (dependency: PnpmDependency): Promise<{ licenseText: string; resolvedBy: typeof resolvedByTypes[number] }> => {
+/**
+ * strips markdown formatting, unindents text if needed, trims trailing whitespace
+ */
+const prettifyLicenseText = (licenseText: string) => {
+  return stripIndent(removeMarkdown(licenseText)).trim()
+}
+
+export type PnpmDependencyResolvedLicenseText = PnpmDependency & {
+  licenseText: string
+  additionalText?: string
+  resolvedBy: typeof resolvedByTypes[number]
+}
+
+export const getLicenseText = async (dependency: PnpmDependency): Promise<{ licenseText: string; additionalText?: string; resolvedBy: typeof resolvedByTypes[number] }> => {
   const files = await fs.readdir(dependency.path)
 
   const licenseFiles = LICENSE_BASENAMES.map((basename) => files.filter((file) => basename.test(file))).flat()
 
   // we found a license file, easy
   if (licenseFiles.length > 0) {
-    return fs.readFile(path.join(dependency.path, licenseFiles[0]), 'utf8').then((licenseText) => ({ licenseText, resolvedBy: 'license-file' }))
+    return fs.readFile(path.join(dependency.path, licenseFiles[0]), 'utf8').then((licenseText) => ({ licenseText: stripIndent(licenseText).trim(), resolvedBy: 'license-file' }))
   }
 
   // no license file found, fallback to other methods
@@ -79,7 +94,7 @@ export const getLicenseText = async (dependency: PnpmDependency): Promise<{ lice
       const isFullLicenseText = Object.entries(LICENSE_TEXT_SUBSTRINGS).find(([key, regex]) => regex.test(licenseSection))
 
       if (isFullLicenseText) {
-        return { licenseText: licenseSection, resolvedBy: 'readme-search' }
+        return { licenseText: prettifyLicenseText(licenseSection), resolvedBy: 'readme-search' }
       }
     }
   }
@@ -90,36 +105,44 @@ export const getLicenseText = async (dependency: PnpmDependency): Promise<{ lice
 
     const isPublicDomainLikeLicense = ['WTFPL', 'CC0-1.0', 'Unlicense', 'MIT-0'].includes(dependency.license)
 
-    // for public domain like licenses we don't want to write "Copyright Jane Doe" but rather just mention the original author or project page
+    // for public domain like licenses it doesn't make sense to add "Copyright (c) 2023, Jane Doe",
+    // we rather want to add additional information about the authors without mentioning copyright
     if (isPublicDomainLikeLicense) {
       if (dependency.author) {
         return {
-          licenseText: `Created by ${dependency.author}\n\n${licenseText}`,
+          licenseText: licenseText,
+          additionalText: `This software was created by ${dependency.author}`,
           resolvedBy: 'fallback-author'
         }
       }
 
       if (dependency.homepage) {
         return {
-          licenseText: `Project page: ${dependency.homepage}\n\n${licenseText}`,
+          licenseText: licenseText,
           resolvedBy: 'fallback-homepage'
         }
       }
     }
 
-    // TODO: some licenses contain placeholders like <year> or <author>, we ideally want to replace those with the actual values
-    if (dependency.author) {
+    const authors = dependency.author ? dependency.author : dependency.homepage ? `The maintainers of ${dependency.name} <${dependency.homepage}>` : `The maintainers of ${dependency.name}`
+
+    // TODO: some license files contain placeholders like <year>, <owner> or <copyright holders>. We ideally want to replace those with the actual values
+    // TODO: for now we only handle the most common cases here
+    if (dependency.license === 'MIT') {
       return {
-        licenseText: `Copyright ${dependency.author}\n\n${licenseText}`,
-        resolvedBy: 'fallback-author'
+        licenseText: licenseText.replace('<year> <copyright holders>', authors),
+        resolvedBy: dependency.author ? 'fallback-author' : 'fallback-homepage'
+      }
+    } else if (dependency.license === 'BSD-3-Clause' || dependency.license === 'BSD-2-Clause') {
+      return {
+        licenseText: licenseText.replace('<year> <owner>', authors),
+        resolvedBy: dependency.author ? 'fallback-author' : 'fallback-homepage'
       }
     }
 
-    if (dependency.homepage) {
-      return {
-        licenseText: `Copyright ${dependency.homepage}\n\n${licenseText}`,
-        resolvedBy: 'fallback-homepage'
-      }
+    return {
+      licenseText: `Copyright (c) ${authors}\n\n${licenseText}`,
+      resolvedBy: dependency.author ? 'fallback-author' : 'fallback-homepage'
     }
   }
 
