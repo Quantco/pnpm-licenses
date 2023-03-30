@@ -2,9 +2,10 @@ import { defineConfig } from 'tsup'
 
 export default defineConfig({
   entry: {
-    index: 'src/cli.ts'
+    index: 'src/cli.ts',
+    api: 'src/api.ts'
   },
-  dts: false,
+  dts: true,
   clean: true,
   target: 'es2020',
   format: ['esm'],
