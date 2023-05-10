@@ -9,7 +9,10 @@ jobs:
     strategy:
       matrix:
         packages:
-          - { name: '@quantco/pnpm-licenses', registry: 'https://registry.npmjs.org', scope: '@quantco', token_secret_name: 'NPM_TOKEN' }
+          # we want to publish this package both to npm (public) and to the github package registry (private)
+          # this ensures that it can be used even if the @quantco scope is set to use the github registry
+          #- { name: '@quantco/pnpm-licenses', registry: 'https://registry.npmjs.org', scope: '@quantco', token_secret_name: 'NPM_TOKEN', access: 'public' }
+          - { name: '@quantco/pnpm-licenses', registry: 'https://npm.pkg.github.com', scope: '@quantco', token_secret_name: 'GITHUB_TOKEN', access: 'restricted' }
     runs-on: ubuntu-latest
     permissions:
       contents: read # this is needed by version-metadata
@@ -72,9 +75,10 @@ jobs:
           echo "Publishing version ${{ steps.publish.outputs.version }}"
           npm version --git-tag-version false --allow-same-version true ${{ steps.publish.outputs.version }}
           # "--access public" is required for scoped packages when publishing for the first time
-          # as by default scoped packages are set to private
-          # TODO: skipping publish for now, just checking if it gets this far
-          # npm publish --access public
+          # as by default scoped packages are set to private (restricted)
+          # Opting to always specify "--access <...>" to avoid any issues, the access is configured
+          # on a per-registry basis in the matrix
+          npm publish --access ${{ matrix.packages.access }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets[matrix.packages.token_secret_name] }}
       - name: Create action summary
