@@ -15,7 +15,6 @@ commands:
     --prod, -p                   Only consider production dependencies
     --resolve-licenses           Resolve actual license files and texts for dependencies
                                  (as compared to just the license identifier)
-    --cyclonedx                  Output cycloneDX compliant json
     --json-input                 Read input from stdin as json, instead of calling pnpm ourselves
     --json-input-file, -i        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
     --output-file, -o            Output to a file instead of stdout
@@ -81,7 +80,6 @@ type Dependency = {
 --prod, -p                   Only consider production dependencies
 --resolve-licenses           Resolve actual license files and texts for dependencies
                              (as compared to just the license identifier)
---cyclonedx                  Output cycloneDX compliant json
 --json-input                 Read input from stdin as json, instead of calling pnpm ourselves
 --json-input-file, -i        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
 --output-file, -o            Output to a file instead of stdout

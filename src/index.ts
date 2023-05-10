@@ -7,7 +7,6 @@ import { resolveLicensesBestEffort } from './resolve-licenses-best-effort'
 export type ListOptions = {
   prod: boolean
   resolveLicenses: boolean
-  cycloneDX: boolean
 }
 
 export type GenerateDisclaimerOptions = {
@@ -34,13 +33,8 @@ export const listCommand = async (options: ListOptions, ioOptions: IOOptions) =>
     .then(Object.values)
     .then((deps: PnpmDependency[]) => deps.flat())
 
-  if (!options.resolveLicenses && !options.cycloneDX) {
+  if (!options.resolveLicenses) {
     deps.then((deps) => output(JSON.stringify(deps, null, 2), ioOptions)).then(() => process.exit(0))
-  }
-
-  if (options.cycloneDX) {
-    console.log('NOT IMPLEMENTED YET')
-    process.exit(1)
   }
 
   const { successful, failed } = await resolveLicensesBestEffort(await deps)

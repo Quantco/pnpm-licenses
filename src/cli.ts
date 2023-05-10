@@ -14,7 +14,6 @@ ${c.bold(c.white('commands'))}:
     ${c.white('--prod')}, ${c.white('-p')}                   Only consider production dependencies
     ${c.white('--resolve-licenses')}           Resolve actual license files and texts for dependencies
                                  (as compared to just the license identifier)
-    ${c.white('--cyclonedx')}                  Output cycloneDX compliant json
     ${c.white('--json-input')}                 Read input from stdin as json, instead of calling pnpm ourselves
     ${c.white('--json-input-file')}, ${c.white('-i')}        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
     ${c.white('--output-file')}, ${c.white('-o')}            Output to a file instead of stdout
@@ -44,7 +43,6 @@ ${c.bold(c.white('options'))}:
   ${c.white('--prod')}, ${c.white('-p')}                   Only consider production dependencies
   ${c.white('--resolve-licenses')}           Resolve actual license files and texts for dependencies
                                (as compared to just the license identifier)
-  ${c.white('--cyclonedx')}                  Output cycloneDX compliant json
 
   ${c.white('--json-input')}                 Read input from stdin as json, instead of calling pnpm ourselves
   ${c.white('--json-input-file')}, ${c.white('-i')}        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
@@ -70,7 +68,7 @@ ${c.bold(c.white('options'))}:
 /* eslint-enable prettier/prettier */
 
 const argv = minimist(process.argv.slice(2), {
-  boolean: ['json-input', 'prod', 'resolve-licenses', 'cyclonedx', 'version', 'help'],
+  boolean: ['json-input', 'prod', 'resolve-licenses', 'version', 'help'],
   alias: {
     'json-input-file': ['i'],
     'output-file': ['o']
@@ -85,7 +83,6 @@ const knownFlags = [
   'o',
   'prod',
   'resolve-licenses',
-  'cyclonedx',
   'version',
   'help'
 ]
@@ -173,23 +170,17 @@ if (argv._.length === 1 && argv._[0] === 'list') {
     process.exit(1)
   }
 
-  if (typeof argv.cyclonedx !== 'boolean') {
-    console.log('Invalid value for cyclonedx flag:', argv.cyclonedx)
-    process.exit(1)
-  }
-
   listCommand(
     {
       prod: argv.prod,
-      resolveLicenses: argv['resolve-licenses'],
-      cycloneDX: argv.cyclonedx
+      resolveLicenses: argv['resolve-licenses']
     },
     ioOptions
   )
 }
 
 if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
-  const forbiddenFlags = ['resolve-licenses', 'cyclonedx', 'version', 'help']
+  const forbiddenFlags = ['resolve-licenses', 'version', 'help']
   const unknownFlags = usedFlags.filter((flag) => !knownFlags.includes(flag))
   const invalidFlags = usedFlags.filter((flag) => forbiddenFlags.includes(flag))
 
