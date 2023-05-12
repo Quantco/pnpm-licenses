@@ -7,17 +7,25 @@ export const resolveLicensesBestEffort = async (
 ): Promise<{ successful: PnpmDependencyResolvedLicenseText[]; failed: PnpmDependency[] }> => {
   const depsWithLicensesPromise = deps.map(async (dep) => ({ ...dep, ...(await getLicenseText(dep)) }))
 
-  const successful: PnpmDependencyResolvedLicenseText[] = []
-  const failed: PnpmDependency[] = []
+  // keep track of which licenses could be resolved and which couldn't
+  // include the index to restore the original order afterwards
+  const successful: [number, PnpmDependencyResolvedLicenseText][] = []
+  const failed: [number, PnpmDependency][] = []
 
   await Promise.all(
-    depsWithLicensesPromise.map((depPromise) =>
-      depPromise.then((dep) => successful.push(dep)).catch((error) => failed.push(error))
+    depsWithLicensesPromise.map((depPromise, index) =>
+      depPromise
+        .then((dep) => {
+          successful.push([index, dep])
+        })
+        .catch((error) => {
+          failed.push([index, error])
+        })
     )
   )
 
   return {
-    successful,
-    failed
+    successful: successful.sort((a, b) => a[0] - b[0]).map(([, dep]) => dep),
+    failed: failed.sort((a, b) => a[0] - b[0]).map(([, dep]) => dep)
   }
 }

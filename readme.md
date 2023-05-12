@@ -13,11 +13,12 @@ commands:
   list [options]                 List all dependencies and their licenses
 
     --prod, -p                   Only consider production dependencies
-    --resolve-licenses           Resolve actual license files and texts for dependencies
-                                 (as compared to just the license identifier)
     --json-input                 Read input from stdin as json, instead of calling pnpm ourselves
     --json-input-file, -i        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
     --output-file, -o            Output to a file instead of stdout
+    --filter="<json object>"     Filter out dependencies via glob patterns.
+                                 Example: --filter='["@quantco/*", "@pnpm/*"]'
+                                          --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
 
     --help                       Get help for the list command
 
@@ -28,6 +29,9 @@ commands:
     --json-input                 Read input from stdin as json, instead of calling pnpm ourselves
     --json-input-file, -i        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
     --output-file, -o            Output to a file instead of stdout
+    --filter="<json object>"     Filter out dependencies via glob patterns.
+                                 Example: --filter='["@quantco/*", "@pnpm/*"]'
+                                          --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
 
     --help                       Get help for the generate-disclaimer command
 
@@ -41,19 +45,22 @@ There are two major commands available: `list` and `generate-disclaimer`
 
 ## List command
 
-This lists the dependencies of a project and their licenses.
-Using the `--resolve-licenses` flag you'll also get the license texts (which is most likely what you want).
+This lists the dependencies of a project and their licenses (including text!).
 
 Note that the license texts are sometimes extracted or inferred using all kinds of metadata, there might not be a matching `LICENSE` file on disk.
 
 This command can be used to implement your own disclaimer generation in case you want some slightly different behavior than `generate-disclaimer` gives you.
 
+Using `--filter` (or `-f`) you can filter out dependencies via glob patterns. See [multimatch - Globbing patterns](https://github.com/sindresorhus/multimatch#globbing-patterns) for a description of the syntax.
+If you'd like to invert the pattern use the following: `["**", "!@quantco/*", "!@pnpm/*"]` (i.e. for a given list of patterns called `patterns` use `['**', ...patterns.map(p => '!' + p)]` formatted as JSON).
+
 ### Examples
 
 ```bash
-npx @quantco/pnpm-licenses list --prod --resolve-licenses --output-file=output.json
-pnpm licenses list --prod --json | npx @quantco/pnpm-licenses list --json-input --resolve-licenses
-npx @quantco/pnpm-licenses list --json-input-file=dependencies.json --resolve-licenses
+npx @quantco/pnpm-licenses list --prod --output-file=output.json
+npx @quantco/pnpm-licenses list --prod --output-file=output.json --filter='["@quantco/*", "@pnpm/*"]'
+pnpm licenses list --prod --json | npx @quantco/pnpm-licenses list --json-input
+npx @quantco/pnpm-licenses list --json-input-file=dependencies.json
 ```
 
 ### Output
@@ -70,7 +77,7 @@ type Dependency = {
     homepage?: string | undefined // from package.json
     description?: string | undefined // from package.json
     additionalText?: string | undefined // set for dependencies with "public domain like" licences as a replacement for "Copyright (c) <author>"
-    licenseText: string | undefined // license text, this is only set if you use the --resolve-licenses flag
+    licenseText: string | undefined // license text
 }
 ```
 
@@ -78,11 +85,10 @@ type Dependency = {
 
 ```
 --prod, -p                   Only consider production dependencies
---resolve-licenses           Resolve actual license files and texts for dependencies
-                             (as compared to just the license identifier)
 --json-input                 Read input from stdin as json, instead of calling pnpm ourselves
 --json-input-file, -i        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
 --output-file, -o            Output to a file instead of stdout
+--filter, -f                 Filter out dependencies via glob patterns.
 ```
 
 
@@ -90,6 +96,9 @@ type Dependency = {
 
 This is the main command that you'll probably want to use.
 It generates a single large disclaimer for all third-party licenses you have in your pnpm project.
+
+Using `--filter` (or `-f`) you can filter out dependencies via glob patterns. See [multimatch - Globbing patterns](https://github.com/sindresorhus/multimatch#globbing-patterns) for a description of the syntax.
+If you'd like to invert the pattern use the following: `["**", "!@quantco/*", "!@pnpm/*"]` (i.e. for a given list of patterns called `patterns` use `['**', ...patterns.map(p => '!' + p)]` formatted as JSON).
 
 The file will look as follows:
 
@@ -118,6 +127,7 @@ This software contains the following license and notice below:
 ```bash
 pnpm licenses list --json --prod | npx @quantco/pnpm-licenses generate-disclaimer --json-input --output-file=third-party-licenses.txt
 npx @quantco/pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+npx @quantco/pnpm-licenses generate-disclaimer --prod --filter='["@quantco/*", "@pnpm/*"]'
 ```
 
 ### Options
@@ -127,6 +137,7 @@ npx @quantco/pnpm-licenses generate-disclaimer --prod --output-file=third-party-
 --json-input                 Read input from stdin as json, instead of calling pnpm ourselves
 --json-input-file, -i        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
 --output-file, -o            Output to a file instead of stdout
+--filter, -f                 Filter out dependencies via glob patterns.
 ```
 
 

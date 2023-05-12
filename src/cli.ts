@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 import minimist from 'minimist'
 import c from 'ansi-colors'
+import { z } from 'zod'
+import { version } from '../package.json'
 import { listCommand, generateDisclaimerCommand } from './index'
 
-const version = '1.0.0'
+const filtersSchema = z.array(z.string())
+
 /* eslint-disable prettier/prettier */
 const usage = `
 ${c.bold('usage')}: ${c.yellow('pnpm-licenses')} ${c.white('[command]')} ${c.white('[options]')}
@@ -12,11 +15,12 @@ ${c.bold(c.white('commands'))}:
   ${c.bold(c.white('list'))} [options]                 ${c.white('List all dependencies and their licenses')}
 
     ${c.white('--prod')}, ${c.white('-p')}                   Only consider production dependencies
-    ${c.white('--resolve-licenses')}           Resolve actual license files and texts for dependencies
-                                 (as compared to just the license identifier)
     ${c.white('--json-input')}                 Read input from stdin as json, instead of calling pnpm ourselves
     ${c.white('--json-input-file')}, ${c.white('-i')}        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
     ${c.white('--output-file')}, ${c.white('-o')}            Output to a file instead of stdout
+    ${c.white('--filter')}, ${c.white('-f')}                 Filter out dependencies via glob patterns.
+                                 Example: --filter='["@quantco/*", "@pnpm/*"]'
+                                          --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
 
     ${c.white('--help')}                       Get help for the list command
 
@@ -27,6 +31,9 @@ ${c.bold(c.white('commands'))}:
     ${c.white('--json-input')}                 Read input from stdin as json, instead of calling pnpm ourselves
     ${c.white('--json-input-file')}, ${c.white('-i')}        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
     ${c.white('--output-file')}, ${c.white('-o')}            Output to a file instead of stdout
+    ${c.white('--filter')}, ${c.white('-f')}                 Filter out dependencies via glob patterns.
+                                 Example: --filter='["@quantco/*", "@pnpm/*"]'
+                                          --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
 
     ${c.white('--help')}                       Get help for the generate-disclaimer command
 
@@ -41,12 +48,13 @@ ${c.bold('usage')}: ${c.yellow('pnpm-licenses list')} ${c.white('[options]')}
 
 ${c.bold(c.white('options'))}:
   ${c.white('--prod')}, ${c.white('-p')}                   Only consider production dependencies
-  ${c.white('--resolve-licenses')}           Resolve actual license files and texts for dependencies
-                               (as compared to just the license identifier)
 
   ${c.white('--json-input')}                 Read input from stdin as json, instead of calling pnpm ourselves
   ${c.white('--json-input-file')}, ${c.white('-i')}        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
   ${c.white('--output-file')}, ${c.white('-o')}            Output to a file instead of stdout
+  ${c.white('--filter')}, ${c.white('-f')}                 Filter out dependencies via glob patterns.
+                               Example: --filter='["@quantco/*", "@pnpm/*"]'
+                                        --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
 
   ${c.white('--help')}                       Get help for the list command
 `.trim()
@@ -62,30 +70,49 @@ ${c.bold(c.white('options'))}:
   ${c.white('--json-input')}                 Read input from stdin as json, instead of calling pnpm ourselves
   ${c.white('--json-input-file')}, ${c.white('-i')}        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
   ${c.white('--output-file')}, ${c.white('-o')}            Output to a file instead of stdout
+  ${c.white('--filter')}, ${c.white('-f')}                 Filter out dependencies via glob patterns.
+                               Example: --filter='["@quantco/*", "@pnpm/*"]'
+                                        --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
 
   ${c.white('--help')}                       Get help for the generate-disclaimer command
 `.trim()
 /* eslint-enable prettier/prettier */
 
+const parseFilters = (
+  filtersAsJsonString: string
+): { success: false; error: string } | z.SafeParseSuccess<string[]> => {
+  let jsonFilter
+  try {
+    jsonFilter = JSON.parse(filtersAsJsonString)
+  } catch (e) {
+    return {
+      success: false,
+      error: `Invalid value for filter flag, expected an array of strings encoded as JSON but received:\n${filtersAsJsonString}`
+    }
+  }
+
+  const maybeFilters = filtersSchema.safeParse(jsonFilter)
+  if (!maybeFilters.success) {
+    const formattedZodError = JSON.stringify(maybeFilters.error.format(), null, 2)
+    return {
+      success: false,
+      error: `Invalid value for filter flag, expected an array of strings encoded as JSON. Received valid JSON but got a schema error:\n${formattedZodError}`
+    }
+  }
+
+  return maybeFilters
+}
+
 const argv = minimist(process.argv.slice(2), {
-  boolean: ['json-input', 'prod', 'resolve-licenses', 'version', 'help'],
+  boolean: ['json-input', 'prod', 'version', 'help'],
   alias: {
     'json-input-file': ['i'],
-    'output-file': ['o']
+    'output-file': ['o'],
+    filter: ['f']
   }
 })
 
-const knownFlags = [
-  'json-input',
-  'json-input-file',
-  'i',
-  'output-file',
-  'o',
-  'prod',
-  'resolve-licenses',
-  'version',
-  'help'
-]
+const knownFlags = ['json-input', 'json-input-file', 'i', 'output-file', 'o', 'filter', 'f', 'prod', 'version', 'help']
 
 const usedFlags = Object.entries(argv)
   .filter(([, value]: [string, boolean | string]) => value === true)
@@ -152,6 +179,18 @@ if (argv._.length === 1 && argv._[0] === 'list') {
     process.exit(1)
   }
 
+  let filters: string[] = []
+
+  if (argv.filter) {
+    const maybeFilters = parseFilters(argv.filter)
+    if (!maybeFilters.success) {
+      console.log(maybeFilters.error)
+      process.exit(1)
+    }
+
+    filters = maybeFilters.data
+  }
+
   // TODO: validate io options
   const ioOptions = {
     stdin: argv['json-input'],
@@ -165,22 +204,11 @@ if (argv._.length === 1 && argv._[0] === 'list') {
     process.exit(1)
   }
 
-  if (typeof argv['resolve-licenses'] !== 'boolean') {
-    console.log('Invalid value for resolve-licenses flag:', argv['resolve-licenses'])
-    process.exit(1)
-  }
-
-  listCommand(
-    {
-      prod: argv.prod,
-      resolveLicenses: argv['resolve-licenses']
-    },
-    ioOptions
-  )
+  listCommand({ prod: argv.prod, filters }, ioOptions)
 }
 
 if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
-  const forbiddenFlags = ['resolve-licenses', 'version', 'help']
+  const forbiddenFlags = ['version', 'help']
   const unknownFlags = usedFlags.filter((flag) => !knownFlags.includes(flag))
   const invalidFlags = usedFlags.filter((flag) => forbiddenFlags.includes(flag))
 
@@ -200,6 +228,18 @@ if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
     process.exit(1)
   }
 
+  let filters: string[] = []
+
+  if (argv.filter) {
+    const maybeFilters = parseFilters(argv.filter)
+    if (!maybeFilters.success) {
+      console.log(maybeFilters.error)
+      process.exit(1)
+    }
+
+    filters = maybeFilters.data
+  }
+
   // TODO: validate io options
   const ioOptions = {
     stdin: argv['json-input'],
@@ -213,10 +253,5 @@ if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
     process.exit(1)
   }
 
-  generateDisclaimerCommand(
-    {
-      prod: argv.prod
-    },
-    ioOptions
-  )
+  generateDisclaimerCommand({ prod: argv.prod, filters }, ioOptions)
 }

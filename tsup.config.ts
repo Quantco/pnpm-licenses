@@ -11,6 +11,5 @@ export default defineConfig({
   format: ['esm'],
   sourcemap: true,
   minify: false,
-  // TODO: might be useful to add something here
   noExternal: []
 })
