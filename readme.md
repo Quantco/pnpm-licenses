@@ -1,5 +1,7 @@
 # pnpm-licenses
 
+![npm](https://img.shields.io/npm/v/@quantco/pnpm-licenses?color=%23000000)
+
 This is a CLI tool for generating lists of licenses for all dependencies of a project using [pnpm](https://pnpm.io).
 
 # Usage
