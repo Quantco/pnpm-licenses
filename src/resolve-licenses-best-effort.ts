@@ -1,16 +1,16 @@
-import type { PnpmDependency } from './get-dependencies'
+import type { PnpmDependencyFlattened } from './get-dependencies'
 import { getLicenseText } from './get-license-text'
 import type { PnpmDependencyResolvedLicenseText } from './get-license-text'
 
 export const resolveLicensesBestEffort = async (
-  deps: PnpmDependency[]
-): Promise<{ successful: PnpmDependencyResolvedLicenseText[]; failed: PnpmDependency[] }> => {
+  deps: PnpmDependencyFlattened[]
+): Promise<{ successful: PnpmDependencyResolvedLicenseText[]; failed: PnpmDependencyFlattened[] }> => {
   const depsWithLicensesPromise = deps.map(async (dep) => ({ ...dep, ...(await getLicenseText(dep)) }))
 
   // keep track of which licenses could be resolved and which couldn't
   // include the index to restore the original order afterwards
   const successful: [number, PnpmDependencyResolvedLicenseText][] = []
-  const failed: [number, PnpmDependency][] = []
+  const failed: [number, PnpmDependencyFlattened][] = []
 
   await Promise.all(
     depsWithLicensesPromise.map((depPromise, index) =>

@@ -83,6 +83,8 @@ type Dependency = {
 }
 ```
 
+> Note that if multiple versions of a package are installed the output will contain the same package multiple times with differing versions (and paths)
+
 ### Options
 
 ```

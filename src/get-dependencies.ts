@@ -2,7 +2,17 @@ import fs from 'fs/promises'
 import { exec } from 'child_process'
 import z from 'zod'
 
-const pnpmDependencySchema = z.object({
+const pnpmDependencyGroupedSchema = z.object({
+  name: z.string(),
+  versions: z.array(z.string()),
+  paths: z.array(z.string()),
+  license: z.string(),
+  author: z.string().optional(),
+  homepage: z.string().optional(),
+  description: z.string().optional()
+})
+
+const pnpmDependencyFlattenedSchema = z.object({
   name: z.string(),
   version: z.string(),
   path: z.string(),
@@ -12,10 +22,32 @@ const pnpmDependencySchema = z.object({
   description: z.string().optional()
 })
 
+const pnpmDependencySchema = z.union([pnpmDependencyGroupedSchema, pnpmDependencyFlattenedSchema])
+
 const pnpmInputSchema = z.record(z.string(), z.array(pnpmDependencySchema))
 
 export type PnpmDependency = z.infer<typeof pnpmDependencySchema>
 export type PnpmJson = z.infer<typeof pnpmInputSchema>
+
+export type PnpmDependencyFlattened = z.infer<typeof pnpmDependencyFlattenedSchema>
+
+export const flattenDependencies = (deps: PnpmDependency[]): PnpmDependencyFlattened[] =>
+  deps.flatMap(({ name, license, author, homepage, description, ...rest }) => {
+    if ('version' in rest) {
+      return [{ name, license, author, homepage, description, ...rest }]
+    } else {
+      const { versions, paths } = rest
+      return versions.map((version, i) => ({
+        name,
+        version,
+        path: paths[i],
+        license,
+        author,
+        homepage,
+        description
+      }))
+    }
+  })
 
 async function read(stream: NodeJS.ReadableStream) {
   const chunks: Buffer[] = []
@@ -32,7 +64,10 @@ export type IOOptions = (
 ) &
   ({ stdout: true; outputFile: undefined } | { stdout: false; outputFile: string })
 
-export const getDependencies = (options: { prod: boolean }, ioOptions: IOOptions): Promise<PnpmJson> => {
+export const getDependencies = (
+  options: { prod: boolean },
+  ioOptions: IOOptions
+): Promise<PnpmDependencyFlattened[]> => {
   let inputPromise: Promise<string> | undefined
 
   if (ioOptions.stdin) {
@@ -49,5 +84,10 @@ export const getDependencies = (options: { prod: boolean }, ioOptions: IOOptions
   }
 
   // TODO: proper error handling pls
-  return inputPromise.then(JSON.parse).then(pnpmInputSchema.parse)
+  return inputPromise
+    .then(JSON.parse)
+    .then(pnpmInputSchema.parse)
+    .then(Object.values)
+    .then((deps: PnpmDependency[][]) => deps.flat())
+    .then(flattenDependencies)
 }
