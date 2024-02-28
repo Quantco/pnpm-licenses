@@ -1,6 +1,6 @@
 {
   "name": "@quantco/pnpm-licenses",
-  "version": "1.0.3",
+  "version": "2.0.0",
   "description": "Generate third party license disclaimers in pnpm-based projects",
   "homepage": "https://github.com/Quantco/pnpm-licenses",
   "repository": {

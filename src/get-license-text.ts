@@ -3,7 +3,7 @@ import path from 'path'
 import licenseTexts from 'spdx-license-list/full.js'
 import stripIndent from 'strip-indent'
 import removeMarkdown from 'remove-markdown'
-import type { PnpmDependency } from './get-dependencies'
+import type { PnpmDependencyFlattened } from './get-dependencies'
 
 const LICENSE_BASENAMES = [/* eslint-disable prettier/prettier */
   /^LICENSE$/i,           // e.g. LICENSE
@@ -36,7 +36,7 @@ const LICENSE_TEXT_SUBSTRINGS = {
 }
 
 export class MissingLicenseError extends Error {
-  constructor(public dependency: PnpmDependency) {
+  constructor(public dependency: PnpmDependencyFlattened) {
     super('No license text found for dependency ' + dependency.name)
   }
 }
@@ -50,14 +50,14 @@ const prettifyLicenseText = (licenseText: string) => {
   return stripIndent(removeMarkdown(licenseText)).trim()
 }
 
-export type PnpmDependencyResolvedLicenseText = PnpmDependency & {
+export type PnpmDependencyResolvedLicenseText = PnpmDependencyFlattened & {
   licenseText: string
   additionalText?: string
   resolvedBy: (typeof resolvedByTypes)[number]
 }
 
 export const getLicenseText = async (
-  dependency: PnpmDependency
+  dependency: PnpmDependencyFlattened
 ): Promise<{ licenseText: string; additionalText?: string; resolvedBy: (typeof resolvedByTypes)[number] }> => {
   const files = await fs.readdir(dependency.path)
 

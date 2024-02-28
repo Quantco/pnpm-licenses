@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import multimatch from 'multimatch'
 import { getDependencies } from './get-dependencies'
-import type { PnpmDependency } from './get-dependencies'
+import type { PnpmDependencyFlattened } from './get-dependencies'
 import { generateDisclaimer } from './generate-disclaimer'
 import { resolveLicensesBestEffort } from './resolve-licenses-best-effort'
 
@@ -31,10 +31,9 @@ const output = (value: string, options: IOOptions) => {
 }
 
 export const listCommand = async (options: ListOptions, ioOptions: IOOptions) => {
-  const deps = getDependencies(options, ioOptions)
-    .then(Object.values)
-    .then((deps: PnpmDependency[][]) => deps.flat())
-    .then((deps: PnpmDependency[]) => deps.filter((dep) => multimatch(dep.name, options.filters).length === 0))
+  const deps = getDependencies(options, ioOptions).then((deps: PnpmDependencyFlattened[]) =>
+    deps.filter((dep) => multimatch(dep.name, options.filters).length === 0)
+  )
 
   const { successful, failed } = await resolveLicensesBestEffort(await deps)
 
@@ -43,10 +42,9 @@ export const listCommand = async (options: ListOptions, ioOptions: IOOptions) =>
 }
 
 export const generateDisclaimerCommand = async (options: GenerateDisclaimerOptions, ioOptions: IOOptions) => {
-  const deps = getDependencies(options, ioOptions)
-    .then(Object.values)
-    .then((deps: PnpmDependency[][]) => deps.flat())
-    .then((deps: PnpmDependency[]) => deps.filter((dep) => multimatch(dep.name, options.filters).length === 0))
+  const deps = getDependencies(options, ioOptions).then((deps: PnpmDependencyFlattened[]) =>
+    deps.filter((dep) => multimatch(dep.name, options.filters).length === 0)
+  )
 
   const { successful, failed } = await resolveLicensesBestEffort(await deps)
 
