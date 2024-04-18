@@ -21,6 +21,8 @@ ${c.bold(c.white('commands'))}:
     ${c.white('--filter')}, ${c.white('-f')}                 Filter out dependencies via glob patterns.
                                  Example: --filter='["@quantco/*", "@pnpm/*"]'
                                           --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
+    ${c.white('--filter-packages')}, ${c.white('-fp')}       Filter out packages in a pnpm workspace.
+                                                             Example: --filter-packages='["@quantco/app", "@quantco/backend"]'
 
     ${c.white('--help')}                       Get help for the list command
 
@@ -34,6 +36,8 @@ ${c.bold(c.white('commands'))}:
     ${c.white('--filter')}, ${c.white('-f')}                 Filter out dependencies via glob patterns.
                                  Example: --filter='["@quantco/*", "@pnpm/*"]'
                                           --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
+    ${c.white('--filter-packages')}, ${c.white('-fp')}       Filter out packages in a pnpm workspace.
+                                 Example: --filter-packages='["@quantco/app", "@quantco/backend"]'
 
     ${c.white('--help')}                       Get help for the generate-disclaimer command
 
@@ -55,6 +59,8 @@ ${c.bold(c.white('options'))}:
   ${c.white('--filter')}, ${c.white('-f')}                 Filter out dependencies via glob patterns.
                                Example: --filter='["@quantco/*", "@pnpm/*"]'
                                         --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
+  ${c.white('--filter-packages')}, ${c.white('-fp')}       Filter out packages in a pnpm workspace.
+                               Example: --filter-packages='["@quantco/app", "@quantco/backend"]'
 
   ${c.white('--help')}                       Get help for the list command
 `.trim()
@@ -73,6 +79,8 @@ ${c.bold(c.white('options'))}:
   ${c.white('--filter')}, ${c.white('-f')}                 Filter out dependencies via glob patterns.
                                Example: --filter='["@quantco/*", "@pnpm/*"]'
                                         --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
+  ${c.white('--filter-packages')}, ${c.white('-fp')}       Filter out packages in a pnpm workspace.
+                               Example: --filter-packages='["@quantco/app", "@quantco/backend"]'
 
   ${c.white('--help')}                       Get help for the generate-disclaimer command
 `.trim()
@@ -108,11 +116,25 @@ const argv = minimist(process.argv.slice(2), {
   alias: {
     'json-input-file': ['i'],
     'output-file': ['o'],
-    filter: ['f']
+    filter: ['f'],
+    'filter-packages': ['fp']
   }
 })
 
-const knownFlags = ['json-input', 'json-input-file', 'i', 'output-file', 'o', 'filter', 'f', 'prod', 'version', 'help']
+const knownFlags = [
+  'json-input',
+  'json-input-file',
+  'i',
+  'output-file',
+  'o',
+  'filter',
+  'f',
+  'filter-packages',
+  'fp',
+  'prod',
+  'version',
+  'help'
+]
 
 const usedFlags = Object.entries(argv)
   .filter(([, value]: [string, boolean | string]) => value === true)
@@ -191,6 +213,18 @@ if (argv._.length === 1 && argv._[0] === 'list') {
     filters = maybeFilters.data
   }
 
+  let filterPackages: string[] = []
+
+  if (argv['filter-packages']) {
+    const maybeFilterPackages = parseFilters(argv['filter-packages'])
+    if (!maybeFilterPackages.success) {
+      console.log(maybeFilterPackages.error)
+      process.exit(1)
+    }
+
+    filterPackages = maybeFilterPackages.data
+  }
+
   // TODO: validate io options
   const ioOptions = {
     stdin: argv['json-input'],
@@ -204,7 +238,7 @@ if (argv._.length === 1 && argv._[0] === 'list') {
     process.exit(1)
   }
 
-  listCommand({ prod: argv.prod, filters }, ioOptions)
+  listCommand({ prod: argv.prod, filters, filterPackages }, ioOptions)
 }
 
 if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
@@ -240,6 +274,18 @@ if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
     filters = maybeFilters.data
   }
 
+  let filterPackages: string[] = []
+
+  if (argv['filter-packages']) {
+    const maybeFilterPackages = parseFilters(argv['filter-packages'])
+    if (!maybeFilterPackages.success) {
+      console.log(maybeFilterPackages.error)
+      process.exit(1)
+    }
+
+    filterPackages = maybeFilterPackages.data
+  }
+
   // TODO: validate io options
   const ioOptions = {
     stdin: argv['json-input'],
@@ -253,5 +299,5 @@ if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
     process.exit(1)
   }
 
-  generateDisclaimerCommand({ prod: argv.prod, filters }, ioOptions)
+  generateDisclaimerCommand({ prod: argv.prod, filters, filterPackages }, ioOptions)
 }

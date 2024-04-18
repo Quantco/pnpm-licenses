@@ -8,11 +8,13 @@ import { resolveLicensesBestEffort } from './resolve-licenses-best-effort'
 export type ListOptions = {
   prod: boolean
   filters: string[]
+  filterPackages: string[]
 }
 
 export type GenerateDisclaimerOptions = {
   prod: boolean
   filters: string[]
+  filterPackages: string[]
 }
 
 export type IOOptions = (

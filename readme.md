@@ -14,26 +14,30 @@ usage: pnpm-licenses [command] [options]
 commands:
   list [options]                 List all dependencies and their licenses
 
-    --prod, -p                   Only consider production dependencies
-    --json-input                 Read input from stdin as json, instead of calling pnpm ourselves
-    --json-input-file, -i        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
-    --output-file, -o            Output to a file instead of stdout
-    --filter="<json object>"     Filter out dependencies via glob patterns.
-                                 Example: --filter='["@quantco/*", "@pnpm/*"]'
-                                          --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
+    --prod, -p                              Only consider production dependencies
+    --json-input                            Read input from stdin as json, instead of calling pnpm ourselves
+    --json-input-file, -i                   Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
+    --output-file, -o                       Output to a file instead of stdout
+    --filter="<json object>", -f            Filter out dependencies via glob patterns.
+                                            Example: --filter='["@quantco/*", "@pnpm/*"]'
+                                                     --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
+    --filter-packages="<json object>", -fp  Filter out packages in a pnpm workspace.
+                                            Example: --filter-packages='["@quantco/app", "@quantco/backend"]'
 
     --help                       Get help for the list command
 
 
   generate-disclaimer [options]  Generate a disclaimer for all dependencies
 
-    --prod, -p                   Only consider production dependencies
-    --json-input                 Read input from stdin as json, instead of calling pnpm ourselves
-    --json-input-file, -i        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
-    --output-file, -o            Output to a file instead of stdout
-    --filter="<json object>"     Filter out dependencies via glob patterns.
-                                 Example: --filter='["@quantco/*", "@pnpm/*"]'
-                                          --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
+    --prod, -p                              Only consider production dependencies
+    --json-input                            Read input from stdin as json, instead of calling pnpm ourselves
+    --json-input-file, -i                   Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
+    --output-file, -o                       Output to a file instead of stdout
+    --filter="<json object>", -f            Filter out dependencies via glob patterns.
+                                            Example: --filter='["@quantco/*", "@pnpm/*"]'
+                                                     --filter='["**", "!@quantco/*", "!@pnpm/*"]' (inverted match)
+    --filter-packages="<json object>", -fp  Filter out packages in a pnpm workspace.
+                                            Example: --filter-packages='["@quantco/app", "@quantco/backend"]'
 
     --help                       Get help for the generate-disclaimer command
 
@@ -93,6 +97,7 @@ type Dependency = {
 --json-input-file, -i        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
 --output-file, -o            Output to a file instead of stdout
 --filter, -f                 Filter out dependencies via glob patterns.
+--filter-packages, -fp       Filter out packages in a pnpm workspace.
 ```
 
 
@@ -142,6 +147,7 @@ npx @quantco/pnpm-licenses generate-disclaimer --prod --filter='["@quantco/*", "
 --json-input-file, -i        Read input from a (json) file, instead of calling pnpm ourselves or reading from stdin
 --output-file, -o            Output to a file instead of stdout
 --filter, -f                 Filter out dependencies via glob patterns.
+--filter-packages, -fp        Filter out packages in a pnpm workspace.
 ```
 
 

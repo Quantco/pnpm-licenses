@@ -65,7 +65,7 @@ export type IOOptions = (
   ({ stdout: true; outputFile: undefined } | { stdout: false; outputFile: string })
 
 export const getDependencies = (
-  options: { prod: boolean },
+  options: { prod: boolean; filterPackages?: string[] },
   ioOptions: IOOptions
 ): Promise<PnpmDependencyFlattened[]> => {
   let inputPromise: Promise<string> | undefined
@@ -76,7 +76,13 @@ export const getDependencies = (
     inputPromise = fs.readFile(ioOptions.inputFile, 'utf8')
   } else {
     inputPromise = new Promise((resolve, reject) => {
-      exec(`pnpm licenses list ${options.prod ? '--prod' : ''} --json`, (error, stdout, stderr) => {
+      const command =
+        options.filterPackages && options.filterPackages.length > 0
+          ? `pnpm ${options.filterPackages.map((o) => `--filter '${o}'`).join(' ')} licenses list ${
+              options.prod ? '--prod' : ''
+            } --json`
+          : `pnpm licenses list ${options.prod ? '--prod' : ''} --json`
+      exec(command, (error, stdout, stderr) => {
         if (error) return reject(new Error(stderr))
         resolve(stdout)
       })
