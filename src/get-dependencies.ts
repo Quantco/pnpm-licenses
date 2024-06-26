@@ -2,29 +2,34 @@ import fs from 'fs/promises'
 import { exec } from 'child_process'
 import z from 'zod'
 
-const pnpmDependencyGroupedSchema = z.object({
+const pnpmDependencyBaseSchema = z.object({
   name: z.string(),
-  versions: z.array(z.string()),
-  paths: z.array(z.string()),
   license: z.string(),
   author: z.string().optional(),
   homepage: z.string().optional(),
   description: z.string().optional()
 })
 
-const pnpmDependencyFlattenedSchema = z.object({
-  name: z.string(),
-  version: z.string(),
-  path: z.string(),
-  license: z.string(),
-  author: z.string().optional(),
-  homepage: z.string().optional(),
-  description: z.string().optional()
+const pnpmDependencyGroupedSchema = pnpmDependencyBaseSchema.extend({
+  versions: z.array(z.string(), { required_error: 'versions: string[] is required (pnpm>=9.0.0)' }),
+  paths: z.array(z.string(), { required_error: 'paths: string[] is required (pnpm>=9.0.0)' })
+})
+
+const pnpmDependencyFlattenedSchema = pnpmDependencyBaseSchema.extend({
+  version: z.string({ required_error: 'version: string is required (pnpm<9.0.0)' }),
+  path: z.string({ required_error: 'path: string is required (pnpm<9.0.0)' })
 })
 
 const pnpmDependencySchema = z.union([pnpmDependencyGroupedSchema, pnpmDependencyFlattenedSchema])
 
 const pnpmInputSchema = z.record(z.string(), z.array(pnpmDependencySchema))
+
+const pnpmError = z.object({
+  error: z.object({
+    code: z.string(),
+    message: z.string()
+  })
+})
 
 export type PnpmDependency = z.infer<typeof pnpmDependencySchema>
 export type PnpmJson = z.infer<typeof pnpmInputSchema>
@@ -57,6 +62,36 @@ async function read(stream: NodeJS.ReadableStream) {
   return Buffer.concat(chunks).toString('utf8')
 }
 
+const parse =
+  <T>(schema: z.ZodType<T>) =>
+  (value: unknown): T => {
+    const result = schema.safeParse(value)
+
+    if (result.success) return result.data
+
+    const stringifiedInput = JSON.stringify(value, null, 2)
+    const stringifiedError = JSON.stringify(result.error.format(), null, 2)
+    throw new Error(
+      `Failed to parse input, received the following:\n${stringifiedInput}\n\nThe type error was:\n${stringifiedError}`
+    )
+  }
+
+// special treatment for pnpm errors in the input
+// the errors are of the form { error: { code: string, message: string } } and would result in a zod error, but treating
+// them specially is more helpful, as otherwise the error is harder to reason about with the zod validation mixed in
+const checkForPnpmError = (value: unknown) => {
+  const result = pnpmError.safeParse(value)
+
+  if (!result.success) return value
+
+  const { code, message, ...rest } = result.data.error
+
+  // there shouldn't be anything else contained in the error object, but just to be sure that no information is lost we
+  // include any other properties in the error message as json if present
+  const stringifiedRest = Object.keys(rest).length > 0 ? ` (${JSON.stringify(rest, null, 2)})` : ''
+  throw new Error(`${code} - ${message}${stringifiedRest}`)
+}
+
 export type IOOptions = (
   | { stdin: false; inputFile: undefined }
   | { stdin: true; inputFile: undefined }
@@ -83,10 +118,10 @@ export const getDependencies = (
     })
   }
 
-  // TODO: proper error handling pls
   return inputPromise
     .then(JSON.parse)
-    .then(pnpmInputSchema.parse)
+    .then(checkForPnpmError)
+    .then(parse(pnpmInputSchema))
     .then(Object.values)
     .then((deps: PnpmDependency[][]) => deps.flat())
     .then(flattenDependencies)
