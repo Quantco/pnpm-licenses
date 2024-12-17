@@ -204,7 +204,10 @@ if (argv._.length === 1 && argv._[0] === 'list') {
     process.exit(1)
   }
 
-  listCommand({ prod: argv.prod, filters }, ioOptions)
+  listCommand({ prod: argv.prod, filters }, ioOptions).catch((error) => {
+    console.log(error)
+    process.exit(1)
+  })
 }
 
 if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
@@ -253,5 +256,8 @@ if (argv._.length === 1 && argv._[0] === 'generate-disclaimer') {
     process.exit(1)
   }
 
-  generateDisclaimerCommand({ prod: argv.prod, filters }, ioOptions)
+  generateDisclaimerCommand({ prod: argv.prod, filters }, ioOptions).catch((error) => {
+    console.log(error)
+    process.exit(1)
+  })
 }
