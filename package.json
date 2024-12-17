@@ -1,6 +1,6 @@
 {
   "name": "@quantco/pnpm-licenses",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Generate third party license disclaimers in pnpm-based projects",
   "homepage": "https://github.com/Quantco/pnpm-licenses",
   "repository": {
@@ -24,7 +24,7 @@
     "pnpm",
     "cli"
   ],
-  "author": "Jannik Wibker",
+  "author": "Janina Wibker",
   "license": "MIT",
   "scripts": {
     "build": "tsup",

@@ -112,7 +112,7 @@ export const getDependencies = (
   } else {
     inputPromise = new Promise((resolve, reject) => {
       exec(`pnpm licenses list ${options.prod ? '--prod' : ''} --json`, (error, stdout, stderr) => {
-        if (error) return reject(new Error(stderr))
+        if (error) return reject(new Error(`${error.message}\nstdout: ${stdout}\nstderr: ${stderr}`))
         resolve(stdout)
       })
     })
