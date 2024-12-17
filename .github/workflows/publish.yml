@@ -20,13 +20,13 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2.2.4
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2
         with:
-          version: 6.32.2
+          version: 9.14.4
       # Setup .npmrc file to publish to GitHub Packages
       - uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: "22"
           cache: "pnpm"
           registry-url: ${{ matrix.packages.registry }}
           scope: ${{ matrix.packages.scope }}
