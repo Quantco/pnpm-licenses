@@ -17,5 +17,7 @@ export const generateDisclaimer = (deps: PnpmDependencyResolvedLicenseText[]) =>
     })
     .join('\n\n---\n\n')
 
-  return beginning + licenseTexts
+  const trailingNewline = licenseTexts.endsWith('\n') ? '' : '\n'
+
+  return beginning + licenseTexts + trailingNewline
 }

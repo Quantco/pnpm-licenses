@@ -65,9 +65,10 @@ export const getLicenseText = async (
 
   // we found a license file, easy
   if (licenseFiles.length > 0) {
-    return fs
-      .readFile(path.join(dependency.path, licenseFiles[0]), 'utf8')
-      .then((licenseText) => ({ licenseText: stripIndent(licenseText).trim(), resolvedBy: 'license-file' }))
+    return fs.readFile(path.join(dependency.path, licenseFiles[0]), 'utf8').then((licenseText) => ({
+      licenseText: stripIndent(licenseText.replaceAll('\r', '').replaceAll(' \n', '\n')).trim(),
+      resolvedBy: 'license-file'
+    }))
   }
 
   // no license file found, fallback to other methods
