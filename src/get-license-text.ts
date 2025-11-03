@@ -4,6 +4,7 @@ import licenseTexts from 'spdx-license-list/full.js'
 import stripIndent from 'strip-indent'
 import removeMarkdown from 'remove-markdown'
 import type { PnpmDependencyFlattened } from './get-dependencies'
+import { readFileSync } from 'fs'
 
 const LICENSE_BASENAMES = [/* eslint-disable prettier/prettier */
   /^LICENSE$/i,           // e.g. LICENSE
@@ -35,6 +36,8 @@ const LICENSE_TEXT_SUBSTRINGS = {
   cc0_1_0: /The\s+person\s+who\s+associated\s+a\s+work\s+with\s+this\s+deed\s+has\s+dedicated\s+the\s+work\s+to\s+the\s+public\s+domain\s+by\s+waiving\s+all\s+of\s+his\s+or\s+her\s+rights\s+to\s+the\s+work\s+worldwide\s+under\s+copyright\s+law,\s+including\s+all\s+related\s+and\s+neighboring\s+rights,\s+to\s+the\s+extent\s+allowed\s+by\s+law.\s+You\s+can\s+copy,\s+modify,\s+distribute\s+and\s+perform\s+the\s+work,\s+even\s+for\s+commercial\s+purposes,\s+all\s+without\s+asking\s+permission./i,
 }
 
+const NOTICE_BASENAMES = [/^NOTICE$/i]
+
 export class MissingLicenseError extends Error {
   constructor(public dependency: PnpmDependencyFlattened) {
     super('No license text found for dependency ' + dependency.name)
@@ -53,20 +56,24 @@ const prettifyLicenseText = (licenseText: string) => {
 export type PnpmDependencyResolvedLicenseText = PnpmDependencyFlattened & {
   licenseText: string
   additionalText?: string
+  noticeText?: string
   resolvedBy: (typeof resolvedByTypes)[number]
 }
 
 export const getLicenseText = async (
   dependency: PnpmDependencyFlattened
-): Promise<{ licenseText: string; additionalText?: string; resolvedBy: (typeof resolvedByTypes)[number] }> => {
+): Promise<{ licenseText: string; additionalText?: string; noticeText?: string, resolvedBy: (typeof resolvedByTypes)[number] }> => {
   const files = await fs.readdir(dependency.path)
 
   const licenseFiles = LICENSE_BASENAMES.map((basename) => files.filter((file) => basename.test(file))).flat()
+  const noticeFiles = NOTICE_BASENAMES.map((basename) => files.filter((file) => basename.test(file))).flat()
 
   // we found a license file, easy
   if (licenseFiles.length > 0) {
+    const notice = noticeFiles.length > 0 ? readFileSync(path.join(dependency.path, noticeFiles[0]), 'utf8') : undefined
     return fs.readFile(path.join(dependency.path, licenseFiles[0]), 'utf8').then((licenseText) => ({
       licenseText: stripIndent(licenseText.replaceAll('\r', '').replaceAll(' \n', '\n')).trim(),
+      noticeText: notice,
       resolvedBy: 'license-file'
     }))
   }
