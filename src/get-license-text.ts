@@ -4,7 +4,6 @@ import licenseTexts from 'spdx-license-list/full.js'
 import stripIndent from 'strip-indent'
 import removeMarkdown from 'remove-markdown'
 import type { PnpmDependencyFlattened } from './get-dependencies'
-import { readFileSync } from 'fs'
 
 const LICENSE_BASENAMES = [/* eslint-disable prettier/prettier */
   /^LICENSE$/i,           // e.g. LICENSE
@@ -46,12 +45,7 @@ export class MissingLicenseError extends Error {
 
 const resolvedByTypes = ['license-file', 'readme-search', 'fallback-author', 'fallback-homepage'] as const
 
-/**
- * strips markdown formatting, unindents text if needed, trims trailing whitespace
- */
-const prettifyLicenseText = (licenseText: string) => {
-  return stripIndent(removeMarkdown(licenseText)).trim()
-}
+const sanitizeText = (text: string) => stripIndent(text.replaceAll('\r', '').replaceAll(' \n', '\n')).trim()
 
 export type PnpmDependencyResolvedLicenseText = PnpmDependencyFlattened & {
   licenseText: string
@@ -62,7 +56,12 @@ export type PnpmDependencyResolvedLicenseText = PnpmDependencyFlattened & {
 
 export const getLicenseText = async (
   dependency: PnpmDependencyFlattened
-): Promise<{ licenseText: string; additionalText?: string; noticeText?: string, resolvedBy: (typeof resolvedByTypes)[number] }> => {
+): Promise<{
+  licenseText: string
+  additionalText?: string
+  noticeText?: string
+  resolvedBy: (typeof resolvedByTypes)[number]
+}> => {
   const files = await fs.readdir(dependency.path)
 
   const licenseFiles = LICENSE_BASENAMES.map((basename) => files.filter((file) => basename.test(file))).flat()
@@ -70,12 +69,15 @@ export const getLicenseText = async (
 
   // we found a license file, easy
   if (licenseFiles.length > 0) {
-    const notice = noticeFiles.length > 0 ? readFileSync(path.join(dependency.path, noticeFiles[0]), 'utf8') : undefined
-    return fs.readFile(path.join(dependency.path, licenseFiles[0]), 'utf8').then((licenseText) => ({
-      licenseText: stripIndent(licenseText.replaceAll('\r', '').replaceAll(' \n', '\n')).trim(),
-      noticeText: notice,
-      resolvedBy: 'license-file'
-    }))
+    const licensePromise = fs.readFile(path.join(dependency.path, licenseFiles[0]), 'utf8').then(sanitizeText)
+    const noticePromise =
+      noticeFiles.length > 0
+        ? fs.readFile(path.join(dependency.path, noticeFiles[0]), 'utf8').then(sanitizeText)
+        : Promise.resolve(undefined)
+
+    const [licenseText, noticeText] = await Promise.all([licensePromise, noticePromise] as const)
+
+    return { licenseText, noticeText, resolvedBy: 'license-file' }
   }
 
   // no license file found, fallback to other methods
@@ -106,7 +108,7 @@ export const getLicenseText = async (
       const isFullLicenseText = Object.entries(LICENSE_TEXT_SUBSTRINGS).find(([, regex]) => regex.test(licenseSection))
 
       if (isFullLicenseText) {
-        return { licenseText: prettifyLicenseText(licenseSection), resolvedBy: 'readme-search' }
+        return { licenseText: sanitizeText(removeMarkdown(licenseSection)), resolvedBy: 'readme-search' }
       }
     }
   }
