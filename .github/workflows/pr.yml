@@ -1,5 +1,8 @@
 name: PR Gate
-on: push
+on:
+  pull_request:
+  push:
+    branches: [main]
 
 jobs:
   build:
