@@ -35,6 +35,8 @@ const LICENSE_TEXT_SUBSTRINGS = {
   cc0_1_0: /The\s+person\s+who\s+associated\s+a\s+work\s+with\s+this\s+deed\s+has\s+dedicated\s+the\s+work\s+to\s+the\s+public\s+domain\s+by\s+waiving\s+all\s+of\s+his\s+or\s+her\s+rights\s+to\s+the\s+work\s+worldwide\s+under\s+copyright\s+law,\s+including\s+all\s+related\s+and\s+neighboring\s+rights,\s+to\s+the\s+extent\s+allowed\s+by\s+law.\s+You\s+can\s+copy,\s+modify,\s+distribute\s+and\s+perform\s+the\s+work,\s+even\s+for\s+commercial\s+purposes,\s+all\s+without\s+asking\s+permission./i,
 }
 
+const NOTICE_BASENAMES = [/^NOTICE$/i]
+
 export class MissingLicenseError extends Error {
   constructor(public dependency: PnpmDependencyFlattened) {
     super('No license text found for dependency ' + dependency.name)
@@ -43,32 +45,39 @@ export class MissingLicenseError extends Error {
 
 const resolvedByTypes = ['license-file', 'readme-search', 'fallback-author', 'fallback-homepage'] as const
 
-/**
- * strips markdown formatting, unindents text if needed, trims trailing whitespace
- */
-const prettifyLicenseText = (licenseText: string) => {
-  return stripIndent(removeMarkdown(licenseText)).trim()
-}
+const sanitizeText = (text: string) => stripIndent(text.replaceAll('\r', '').replaceAll(' \n', '\n')).trim()
 
 export type PnpmDependencyResolvedLicenseText = PnpmDependencyFlattened & {
   licenseText: string
   additionalText?: string
+  noticeText?: string
   resolvedBy: (typeof resolvedByTypes)[number]
 }
 
 export const getLicenseText = async (
   dependency: PnpmDependencyFlattened
-): Promise<{ licenseText: string; additionalText?: string; resolvedBy: (typeof resolvedByTypes)[number] }> => {
+): Promise<{
+  licenseText: string
+  additionalText?: string
+  noticeText?: string
+  resolvedBy: (typeof resolvedByTypes)[number]
+}> => {
   const files = await fs.readdir(dependency.path)
 
   const licenseFiles = LICENSE_BASENAMES.map((basename) => files.filter((file) => basename.test(file))).flat()
+  const noticeFiles = NOTICE_BASENAMES.map((basename) => files.filter((file) => basename.test(file))).flat()
 
   // we found a license file, easy
   if (licenseFiles.length > 0) {
-    return fs.readFile(path.join(dependency.path, licenseFiles[0]), 'utf8').then((licenseText) => ({
-      licenseText: stripIndent(licenseText.replaceAll('\r', '').replaceAll(' \n', '\n')).trim(),
-      resolvedBy: 'license-file'
-    }))
+    const licensePromise = fs.readFile(path.join(dependency.path, licenseFiles[0]), 'utf8').then(sanitizeText)
+    const noticePromise =
+      noticeFiles.length > 0
+        ? fs.readFile(path.join(dependency.path, noticeFiles[0]), 'utf8').then(sanitizeText)
+        : Promise.resolve(undefined)
+
+    const [licenseText, noticeText] = await Promise.all([licensePromise, noticePromise] as const)
+
+    return { licenseText, noticeText, resolvedBy: 'license-file' }
   }
 
   // no license file found, fallback to other methods
@@ -99,7 +108,7 @@ export const getLicenseText = async (
       const isFullLicenseText = Object.entries(LICENSE_TEXT_SUBSTRINGS).find(([, regex]) => regex.test(licenseSection))
 
       if (isFullLicenseText) {
-        return { licenseText: prettifyLicenseText(licenseSection), resolvedBy: 'readme-search' }
+        return { licenseText: sanitizeText(removeMarkdown(licenseSection)), resolvedBy: 'readme-search' }
       }
     }
   }

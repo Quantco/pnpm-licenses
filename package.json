@@ -1,6 +1,6 @@
 {
   "name": "@quantco/pnpm-licenses",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "Generate third party license disclaimers in pnpm-based projects",
   "homepage": "https://github.com/Quantco/pnpm-licenses",
   "repository": {
@@ -44,7 +44,6 @@
   "devDependencies": {
     "@types/minimist": "^1.2.5",
     "@types/node": "^18.19.80",
-    "@types/spdx-expression-parse": "^3.0.5",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.57.1",
