@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import minimist from 'minimist'
-import c from 'ansi-colors'
 import { z } from 'zod'
 import { version } from '../package.json'
+import { c } from './utils/ansi'
 import { listCommand, generateDisclaimerCommand } from './index'
 
 const filtersSchema = z.array(z.string())
