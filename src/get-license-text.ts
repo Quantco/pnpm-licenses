@@ -1,8 +1,8 @@
-import fs from 'fs/promises'
-import path from 'path'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import licenseTexts from 'spdx-license-list/full.js'
-import stripIndent from 'strip-indent'
 import removeMarkdown from 'remove-markdown'
+import { dedent } from './utils/indentation'
 import type { PnpmDependencyFlattened } from './get-dependencies'
 
 const LICENSE_BASENAMES = [/* eslint-disable prettier/prettier */
@@ -45,7 +45,7 @@ export class MissingLicenseError extends Error {
 
 const resolvedByTypes = ['license-file', 'readme-search', 'fallback-author', 'fallback-homepage'] as const
 
-const sanitizeText = (text: string) => stripIndent(text.replaceAll('\r', '').replaceAll(' \n', '\n')).trim()
+const sanitizeText = (text: string) => dedent(text.replaceAll('\r', '').replaceAll(' \n', '\n')).trim()
 
 export type PnpmDependencyResolvedLicenseText = PnpmDependencyFlattened & {
   licenseText: string
@@ -141,8 +141,8 @@ export const getLicenseText = async (
     const authors = dependency.author
       ? dependency.author
       : dependency.homepage
-      ? `The maintainers of ${dependency.name} <${dependency.homepage}>`
-      : `The maintainers of ${dependency.name}`
+        ? `The maintainers of ${dependency.name} <${dependency.homepage}>`
+        : `The maintainers of ${dependency.name}`
 
     // TODO: some license files contain placeholders like <year>, <owner> or <copyright holders>. We ideally want to replace those with the actual values
     // TODO: for now we only handle the most common cases here
