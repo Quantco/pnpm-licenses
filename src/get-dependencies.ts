@@ -1,6 +1,12 @@
 import fs from 'fs/promises'
 import { exec } from 'child_process'
-import z from 'zod'
+import { z } from 'zod'
+import type { $ZodIssueInvalidType } from 'zod/v4/core'
+
+// match errors that are caused by missing required properties, and return the provided message instead
+// in all other cases return undefined which will result in zod using the default error handling for the issue
+const matchRequiredError = (msg: string) => (iss: Pick<$ZodIssueInvalidType, 'code' | 'input'>) =>
+  iss.code === 'invalid_type' && iss.input === undefined ? msg : undefined
 
 const pnpmDependencyBaseSchema = z.object({
   name: z.string(),
@@ -11,13 +17,15 @@ const pnpmDependencyBaseSchema = z.object({
 })
 
 const pnpmDependencyGroupedSchema = pnpmDependencyBaseSchema.extend({
-  versions: z.array(z.string(), { required_error: 'versions: string[] is required (pnpm>=9.0.0)' }),
-  paths: z.array(z.string(), { required_error: 'paths: string[] is required (pnpm>=9.0.0)' })
+  versions: z.array(z.string(), {
+    error: (iss) => matchRequiredError('versions: string[] is required (pnpm>=9.0.0)')(iss)
+  }),
+  paths: z.array(z.string(), { error: matchRequiredError('paths: string[] is required (pnpm>=9.0.0)') })
 })
 
 const pnpmDependencyFlattenedSchema = pnpmDependencyBaseSchema.extend({
-  version: z.string({ required_error: 'version: string is required (pnpm<9.0.0)' }),
-  path: z.string({ required_error: 'path: string is required (pnpm<9.0.0)' })
+  version: z.string({ error: matchRequiredError('version: string is required (pnpm<9.0.0)') }),
+  path: z.string({ error: matchRequiredError('path: string is required (pnpm<9.0.0)') })
 })
 
 const pnpmDependencySchema = z.union([pnpmDependencyGroupedSchema, pnpmDependencyFlattenedSchema])
@@ -70,9 +78,11 @@ const parse =
     if (result.success) return result.data
 
     const stringifiedInput = JSON.stringify(value, null, 2)
-    const stringifiedError = JSON.stringify(result.error.format(), null, 2)
+    const prettifiedError = z.prettifyError(result.error)
+    const treeifiedError = JSON.stringify(z.treeifyError(result.error), null, 2)
+
     throw new Error(
-      `Failed to parse input, received the following:\n${stringifiedInput}\n\nThe type error was:\n${stringifiedError}`
+      `Failed to parse input, received the following:\n${stringifiedInput}\n\nThe type error was:\n${treeifiedError} (raw)\n\n${prettifiedError} (prettified)`
     )
   }
 

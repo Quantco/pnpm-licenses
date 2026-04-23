@@ -38,7 +38,7 @@
     "multimatch": "^8.0.0",
     "remove-markdown": "^0.5.5",
     "spdx-license-list": "^6.11.0",
-    "zod": "^3.25.68"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/minimist": "^1.2.5",
