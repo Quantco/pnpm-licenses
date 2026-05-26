@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import minimist from 'minimist'
-import c from 'ansi-colors'
 import { z } from 'zod'
 import { version } from '../package.json'
+import { c } from './utils/ansi'
 import { listCommand, generateDisclaimerCommand } from './index'
 
 const filtersSchema = z.array(z.string())
@@ -80,7 +80,7 @@ ${c.bold(c.white('options'))}:
 
 const parseFilters = (
   filtersAsJsonString: string
-): { success: false; error: string } | z.SafeParseSuccess<string[]> => {
+): { success: false; error: string } | z.ZodSafeParseResult<string[]> => {
   let jsonFilter
   try {
     jsonFilter = JSON.parse(filtersAsJsonString)
@@ -93,7 +93,7 @@ const parseFilters = (
 
   const maybeFilters = filtersSchema.safeParse(jsonFilter)
   if (!maybeFilters.success) {
-    const formattedZodError = JSON.stringify(maybeFilters.error.format(), null, 2)
+    const formattedZodError = JSON.stringify(z.treeifyError(maybeFilters.error), null, 2)
     return {
       success: false,
       error: `Invalid value for filter flag, expected an array of strings encoded as JSON. Received valid JSON but got a schema error:\n${formattedZodError}`
