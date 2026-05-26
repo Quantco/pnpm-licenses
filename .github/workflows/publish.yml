@@ -11,13 +11,14 @@ jobs:
         packages:
           # we want to publish this package both to npm (public) and to the github package registry (private)
           # this ensures that it can be used even if the @quantco scope is set to use the github registry
-          - { name: '@quantco/pnpm-licenses', registry: 'https://registry.npmjs.org', scope: '@quantco', token_secret_name: 'NPM_TOKEN', access: 'public' }
-          - { name: '@quantco/pnpm-licenses', registry: 'https://npm.pkg.github.com', scope: '@quantco', token_secret_name: 'GITHUB_TOKEN', access: 'internal' }
+          - { name: '@quantco/pnpm-licenses', registry: 'https://registry.npmjs.org', scope: '@quantco', provenance: true, access: 'public', optional_token: '' }
+          - { name: '@quantco/pnpm-licenses', registry: 'https://npm.pkg.github.com', scope: '@quantco', provenance: false, access: 'internal', optional_token: 'GITHUB_TOKEN' }
     runs-on: ubuntu-latest
     permissions:
       contents: read # this is needed by version-metadata
       pull-requests: read # this is needed by version-metadata
       packages: write
+      id-token: write # needed for trusted publishing
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda
@@ -26,10 +27,11 @@ jobs:
       # Setup .npmrc file to publish to GitHub Packages
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: "22"
+          node-version: "24"
           cache: "pnpm"
           registry-url: ${{ matrix.packages.registry }}
           scope: ${{ matrix.packages.scope }}
+
       - id: version-metadata
         uses: Quantco/ui-actions/version-metadata@1ad831b0b96fa662be3e4b94bf69e20fea61e449 # v1.0.8
         with:
@@ -53,7 +55,7 @@ jobs:
             echo "CI_PUBLISHED_VERSION=0.0.0" >> $GITHUB_ENV
           fi
         env:
-          NODE_AUTH_TOKEN: ${{ secrets[matrix.packages.token_secret_name] }}
+          NODE_AUTH_TOKEN: ${{ secrets[matrix.packages.optional_token] }}
           PACKAGE: ${{ matrix.packages.name }}
       - name: Determine if a new version should be published
         uses: Quantco/ui-actions/publish@1ad831b0b96fa662be3e4b94bf69e20fea61e449 # v1.0.8
@@ -64,23 +66,29 @@ jobs:
           package-json-file-path: 'package.json'
           latest-registry-version: ${{ env.CI_PUBLISHED_VERSION }}
           version-metadata-json: ${{ steps.version-metadata.outputs.json }}
-      - run: pnpm install
-      # github casts all outputs to strings, so evaluate against the string 'true' here :)
-        if: steps.publish.outputs.publish == 'true'
-      - run: 'pnpm build'
-        if: steps.publish.outputs.publish == 'true'
-      - name: publish npm package
+
+      - name: Install deps, build, and publish package
+        # github casts all outputs to strings, so evaluate against the string 'true' here :)
         if: steps.publish.outputs.publish == 'true'
         run: |
+          pnpm install
+          pnpm build
+
           echo "Publishing version ${{ steps.publish.outputs.version }}"
-          npm version --git-tag-version false --allow-same-version true ${{ steps.publish.outputs.version }}
-          # "--access public" is required for scoped packages when publishing for the first time
-          # as by default scoped packages are set to private (restricted)
-          # Opting to always specify "--access <...>" to avoid any issues, the access is configured
-          # on a per-registry basis in the matrix
-          npm publish --access ${{ matrix.packages.access }}
+          npm version \
+            --git-tag-version false \
+            --allow-same-version true \
+            ${{ steps.publish.outputs.version }}
+
+          # "--access public" is required for scoped packages when publishing for the first time as by default scoped
+          # packages are set to private (restricted). Opting to always specify "--access <...>" to avoid any issues,
+          # the access is configured on a per-registry basis in the matrix
+          npm publish \
+            --provenance=${{ matrix.packages.provenance }} \
+            --access=${{ matrix.packages.access }}
         env:
-          NODE_AUTH_TOKEN: ${{ secrets[matrix.packages.token_secret_name] }}
+          NODE_AUTH_TOKEN: ${{ secrets[matrix.packages.optional_token] }}
+
       - name: Create action summary
         run: |
           echo "$SUMMARY" >> $GITHUB_STEP_SUMMARY
