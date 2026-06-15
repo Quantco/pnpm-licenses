@@ -16,7 +16,7 @@
     "readme.md"
   ],
   "main": "dist/api.mjs",
-  "types": "dist/api.d.ts",
+  "types": "dist/api.d.mts",
   "bin": {
     "pnpm-licenses": "dist/index.mjs"
   },
