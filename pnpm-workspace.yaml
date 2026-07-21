@@ -3,3 +3,5 @@ blockExoticSubdeps: true
 
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+- "@quantco/*"
